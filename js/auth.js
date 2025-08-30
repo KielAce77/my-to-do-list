@@ -309,9 +309,10 @@ class AuthManager {
         this.setCurrentUser(null);
         this.removeRememberMeCookie();
         this.showToast('Logged out successfully', 'success');
+        // Reduced delay for faster logout
         setTimeout(() => {
             window.location.href = 'login.html';
-        }, 1000);
+        }, 300);
     }
 
     // ===== PASSWORD MANAGEMENT =====

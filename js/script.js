@@ -528,10 +528,10 @@ class UI {
             confirmBtn.addEventListener('click', handleConfirm);
             cancelBtn.addEventListener('click', handleCancel);
 
-            // Focus on cancel button for accessibility
+            // Focus on cancel button for accessibility (reduced delay)
             setTimeout(() => {
                 cancelBtn.focus();
-            }, 100);
+            }, 50);
         });
     }
 
@@ -1796,32 +1796,27 @@ class App {
             // Set logout flag to prevent authentication check interference
             sessionStorage.setItem('logging_out', 'true');
             
+            // Clear user data immediately
             localStorage.removeItem('taskflow_current_user');
-            // Remove remember me cookie
             document.cookie = 'taskflow_remember=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            
+            // Show success message
             this.showToast('Logged out successfully', 'success');
+            
+            // Redirect immediately without waiting for service worker unregistration
             console.log('Redirecting to login page...');
+            window.location.href = 'login.html';
             
-            // Unregister service worker to prevent interference
+            // Unregister service worker in background (non-blocking)
             if ('serviceWorker' in navigator) {
-                try {
-                    const registration = await navigator.serviceWorker.getRegistration();
-                    if (registration) {
-                        await registration.unregister();
-                        console.log('Service worker unregistered');
-                    }
-                } catch (error) {
-                    console.log('Service worker unregister failed:', error);
-                }
-            }
-            
-            // Force redirect immediately
-            try {
-                window.location.replace('login.html');
-            } catch (error) {
-                console.error('Redirect failed:', error);
-                // Fallback
-                window.location.href = 'login.html';
+                navigator.serviceWorker.getRegistration()
+                    .then(registration => {
+                        if (registration) {
+                            return registration.unregister();
+                        }
+                    })
+                    .then(() => console.log('Service worker unregistered'))
+                    .catch(error => console.log('Service worker unregister failed:', error));
             }
         } else {
             console.log('User cancelled logout');
