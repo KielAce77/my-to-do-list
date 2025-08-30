@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Modern, responsive to-do list application with advanced features">
+    <meta name="theme-color" content="#6366f1">
+    <title>TaskFlow - Modern Todo App</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Styles -->
+               <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    
+
+    <!-- Main App Container -->
+    <div id="app" class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                                 <a href="#" class="logo">
+                     <div class="logo-icon">
+                         <i class="fas fa-tasks"></i>
+                     </div>
+                     <span>TaskFlow</span>
+                 </a>
+                 
+                 <div class="header-actions">
+                     <div class="user-info">
+                         <span class="user-name" id="user-name">User</span>
+                         <div class="user-avatar" id="user-avatar" onclick="app.openProfileModal()">
+                             <i class="fas fa-user"></i>
+                         </div>
+                     </div>
+                     <button id="theme-toggle" class="btn-icon" aria-label="Toggle dark mode">
+                         <i class="fas fa-moon"></i>
+                     </button>
+                     <button id="logout-btn" class="btn-icon" aria-label="Logout">
+                         <i class="fas fa-sign-out-alt"></i>
+                     </button>
+                 </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+                         <!-- Sidebar -->
+             <aside class="sidebar">
+                 <div class="sidebar-section">
+                     <h3 class="sidebar-title">Progress</h3>
+                     <div class="progress-section">
+                         <div class="progress-circle">
+                             <svg>
+                                 <circle class="bg" cx="40" cy="40" r="35"></circle>
+                                 <circle class="progress" cx="40" cy="40" r="35" stroke-dasharray="0 220"></circle>
+                             </svg>
+                             <div class="progress-text">0%</div>
+                         </div>
+                         
+                         <div class="stats-grid">
+                             <div class="stat-item">
+                                 <span class="stat-number" id="total-tasks">0</span>
+                                 <span class="stat-label">Total</span>
+                             </div>
+                             <div class="stat-item">
+                                 <span class="stat-number" id="completed-tasks">0</span>
+                                 <span class="stat-label">Done</span>
+                             </div>
+                             <div class="stat-item">
+                                 <span class="stat-number" id="pending-tasks">0</span>
+                                 <span class="stat-label">Pending</span>
+                             </div>
+                             <div class="stat-item">
+                                 <span class="stat-number" id="completion-rate">0%</span>
+                                 <span class="stat-label">Rate</span>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+                 
+                 <div class="sidebar-section">
+                     <h3 class="sidebar-title">Categories</h3>
+                     <ul id="category-list" class="category-list">
+                         <!-- Categories will be populated by JavaScript -->
+                     </ul>
+                 </div>
+             </aside>
+
+                         <!-- Main Task Area -->
+             <section class="task-area">
+                 <div class="task-header">
+                     <div class="task-header-left">
+                         <h2 class="task-title">My Tasks</h2>
+                         <span class="task-count">0 tasks</span>
+                     </div>
+                     
+                     <div class="task-controls">
+                         <button id="add-task-btn" class="btn btn-primary">
+                             <i class="fas fa-plus"></i>
+                             Add Task
+                         </button>
+                     </div>
+                 </div>
+                 
+                 <div class="search-filters">
+                     <div class="search-box">
+                         <i class="fas fa-search search-icon"></i>
+                         <input type="text" id="search-input" class="search-input" placeholder="Search tasks...">
+                     </div>
+                     
+                     <div class="filter-group">
+                         <select id="filter-status" class="filter-select">
+                             <option value="all">All Status</option>
+                             <option value="pending">Pending</option>
+                             <option value="completed">Completed</option>
+                         </select>
+                         
+                         <select id="filter-priority" class="filter-select">
+                             <option value="all">All Priorities</option>
+                             <option value="high">High</option>
+                             <option value="medium">Medium</option>
+                             <option value="low">Low</option>
+                         </select>
+                     </div>
+                 </div>
+                 
+                 <div id="task-container" class="task-container">
+                     <!-- Tasks will be dynamically inserted here -->
+                 </div>
+             </section>
+        </main>
+    </div>
+
+    <!-- Task Modal -->
+    <div id="task-modal" class="modal" aria-hidden="true">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Add New Task</h2>
+                <button class="modal-close" aria-label="Close modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+                         <form id="task-form" class="task-form">
+                 <input type="hidden" id="task-id" name="taskId">
+                 
+                 <div class="form-group">
+                     <label for="task-title" class="form-label">Task Title *</label>
+                     <input type="text" id="task-title" name="title" class="form-input" required placeholder="Enter task title">
+                 </div>
+ 
+                 <div class="form-row">
+                     <div class="form-group">
+                         <label for="task-priority" class="form-label">Priority</label>
+                         <select id="task-priority" name="priority" class="form-select">
+                             <option value="low">Low</option>
+                             <option value="medium" selected>Medium</option>
+                             <option value="high">High</option>
+                         </select>
+                     </div>
+                     
+                     <div class="form-group">
+                         <label for="task-category" class="form-label">Category</label>
+                         <div class="category-select-container">
+                             <select id="task-category" name="category" class="form-select">
+                                 <option value="personal">Personal</option>
+                                 <option value="work">Work</option>
+                                 <option value="shopping">Shopping</option>
+                                 <option value="health">Health</option>
+                                 <option value="learning">Learning</option>
+                                 <option value="custom">+ Add Custom Category</option>
+                             </select>
+                             <button type="button" id="add-category-btn" class="btn-icon" title="Add Custom Category">
+                                 <i class="fas fa-plus"></i>
+                             </button>
+                         </div>
+                     </div>
+                 </div>
+ 
+                 <div class="form-group">
+                     <label for="task-due-date" class="form-label">Due Date</label>
+                     <input type="datetime-local" id="task-due-date" name="dueDate" class="form-input">
+                 </div>
+ 
+                 <div class="form-group">
+                     <label for="task-description" class="form-label">Description</label>
+                     <textarea id="task-description" name="description" class="form-textarea" rows="3" placeholder="Add description..."></textarea>
+                 </div>
+ 
+                 <div class="form-group">
+                     <label for="task-notes" class="form-label">Notes</label>
+                     <textarea id="task-notes" name="notes" class="form-textarea" rows="2" placeholder="Add notes..."></textarea>
+                 </div>
+ 
+                 <div class="form-group">
+                     <label class="form-label">Subtasks</label>
+                     <div id="subtasks-container">
+                         <!-- Subtasks will be added here -->
+                     </div>
+                     <button type="button" id="add-subtask-btn" class="btn btn-secondary">
+                         <i class="fas fa-plus"></i>
+                         Add Subtask
+                     </button>
+                 </div>
+ 
+                 <div class="form-actions">
+                     <button type="button" class="btn btn-secondary" id="cancel-task-btn">Cancel</button>
+                     <button type="submit" class="btn btn-primary">Save Task</button>
+                 </div>
+             </form>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div id="category-modal" class="modal" aria-hidden="true">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="category-modal-title">Add Custom Category</h2>
+                <button class="modal-close" aria-label="Close modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="category-form" class="category-form">
+                <div class="form-group">
+                    <label for="category-name" class="form-label">Category Name *</label>
+                    <input type="text" id="category-name" name="name" class="form-input" required placeholder="Enter category name">
+                </div>
+
+                <div class="form-group">
+                    <label for="category-color" class="form-label">Color</label>
+                    <div class="color-picker">
+                        <input type="color" id="category-color" name="color" class="form-input color-input" value="#6366f1">
+                        <div class="color-presets">
+                            <button type="button" class="color-preset" data-color="#6366f1" style="background-color: #6366f1;"></button>
+                            <button type="button" class="color-preset" data-color="#10b981" style="background-color: #10b981;"></button>
+                            <button type="button" class="color-preset" data-color="#f59e0b" style="background-color: #f59e0b;"></button>
+                            <button type="button" class="color-preset" data-color="#ef4444" style="background-color: #ef4444;"></button>
+                            <button type="button" class="color-preset" data-color="#8b5cf6" style="background-color: #8b5cf6;"></button>
+                            <button type="button" class="color-preset" data-color="#06b6d4" style="background-color: #06b6d4;"></button>
+                            <button type="button" class="color-preset" data-color="#84cc16" style="background-color: #84cc16;"></button>
+                            <button type="button" class="color-preset" data-color="#f97316" style="background-color: #f97316;"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="ui.closeCategoryModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal" aria-hidden="true">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="modal-close" aria-label="Close modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="settings-content">
+                <div class="settings-section">
+                    <h3>Data Management</h3>
+                    <div class="settings-actions">
+                        <button id="export-data" class="btn btn-secondary">
+                            <i class="fas fa-download"></i>
+                            Export Data
+                        </button>
+                        <button id="import-data" class="btn btn-secondary">
+                            <i class="fas fa-upload"></i>
+                            Import Data
+                        </button>
+                        <input type="file" id="import-file" accept=".json" style="display: none;">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Notifications</h3>
+                    <div class="setting-item">
+                        <label class="switch">
+                            <input type="checkbox" id="notifications-toggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span>Enable browser notifications</span>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Keyboard Shortcuts</h3>
+                    <div class="shortcuts-list">
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>N</kbd>
+                            <span>New Task</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>F</kbd>
+                            <span>Search</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>D</kbd>
+                            <span>Toggle Theme</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>Z</kbd>
+                            <span>Undo Last Action</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="modal" aria-hidden="true">
+        <div class="confirmation-modal-content">
+            <div class="confirmation-body">
+                <div class="confirmation-icon">
+                    <i class="fas fa-question-circle"></i>
+                </div>
+                <p id="confirmation-message" class="confirmation-message"></p>
+            </div>
+            <div class="confirmation-actions">
+                <button id="confirmation-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="confirmation-confirm" class="btn btn-primary">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Picture Modal -->
+    <div id="profile-modal" class="modal" aria-hidden="true">
+        <div class="modal-content profile-modal-content">
+            <div class="modal-header">
+                <h2>Profile Picture</h2>
+                <button class="modal-close" onclick="app.closeProfileModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-picture-section">
+                    <div class="current-profile-picture">
+                        <div class="profile-picture-container" id="profile-picture-container">
+                            <img id="profile-picture-preview" src="" alt="Profile Picture" style="display: none;">
+                            <i class="fas fa-user" id="profile-picture-placeholder"></i>
+                        </div>
+                        <p class="profile-picture-text">Current Profile Picture</p>
+                    </div>
+                    
+                    <div class="upload-section">
+                        <div class="upload-area" id="upload-area">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Click to upload or drag and drop</p>
+                            <p class="upload-hint">Supports JPG, PNG, GIF (Max 5MB)</p>
+                        </div>
+                        <input type="file" id="profile-picture-input" accept="image/*" style="display: none;">
+                        
+                        <div class="upload-actions">
+                            <button id="upload-btn" class="btn btn-primary">
+                                <i class="fas fa-upload"></i> Upload Picture
+                            </button>
+                            <button id="remove-picture-btn" class="btn btn-secondary" style="display: none;">
+                                <i class="fas fa-trash"></i> Remove Picture
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="save-profile-picture" class="btn btn-primary" style="display: none;">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+                <button id="cancel-profile-picture" class="btn btn-secondary" onclick="app.closeProfileModal()">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Motivational Quote Section -->
+    <div class="quote-section">
+        <div class="quote-container">
+            <div class="quote-navigation">
+                <button id="prev-quote-btn" class="quote-nav-btn" onclick="app.showPreviousQuote()" aria-label="Previous quote">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button id="next-quote-btn" class="quote-nav-btn" onclick="app.showNextQuote()" aria-label="Next quote">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="quote-icon">
+                <i class="fas fa-quote-left"></i>
+            </div>
+            <p id="motivational-quote" class="quote-text"></p>
+            <div class="quote-author" id="quote-author"></div>
+
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Check if user is authenticated before loading the app
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if we're in the middle of a logout process
+            if (sessionStorage.getItem('logging_out')) {
+                return; // Don't redirect during logout
+            }
+            
+            const currentUser = localStorage.getItem('taskflow_current_user');
+            if (!currentUser) {
+                // Only redirect if we're not already on the login page
+                if (!window.location.pathname.includes('login.html')) {
+                    window.location.href = 'login.html';
+                }
+            }
+        });
+    </script>
+    <script src="js/script.js"></script>
+</body>
+</html>
