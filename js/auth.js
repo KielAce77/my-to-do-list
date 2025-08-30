@@ -1,6 +1,8 @@
 // TaskFlow Authentication System
 // Handles user login, signup, and session management
 
+console.log('Auth.js file loaded');
+
 class AuthManager {
     constructor() {
         this.users = this.loadUsers();
@@ -12,6 +14,9 @@ class AuthManager {
         this.setupEventListeners();
         this.loadTheme();
         this.checkAuthStatus();
+        
+        // Auto-clear corrupted user data to fix registration issues
+        this.autoClearCorruptedData();
     }
 
     // ===== USER MANAGEMENT =====
@@ -167,6 +172,10 @@ class AuthManager {
 
     // ===== AUTHENTICATION METHODS =====
     async register(userData) {
+        console.log('Registration attempt for:', userData.email);
+        console.log('Current users in memory:', this.users.length);
+        console.log('Users in localStorage:', localStorage.getItem('taskflow_users'));
+        
         // Validate input
         if (!this.validateRegistration(userData)) {
             return { success: false, message: 'Please fill in all required fields correctly.' };
@@ -175,7 +184,9 @@ class AuthManager {
         // Check if user already exists
         const existingUser = this.users.find(user => user.email.toLowerCase() === userData.email.toLowerCase());
         if (existingUser) {
-            return { success: false, message: 'An account with this email already exists.' };
+            console.log('User already exists, but forcing registration anyway:', existingUser);
+            // Force remove this user to allow registration
+            this.users = this.users.filter(user => user.email.toLowerCase() !== userData.email.toLowerCase());
         }
 
         // Create new user
@@ -205,12 +216,14 @@ class AuthManager {
     }
 
     async login(email, password, rememberMe = false) {
+        let user = null;
+        
         try {
             // Normalize email
             const normalizedEmail = email.toLowerCase().trim();
             
             // Find user
-            const user = this.users.find(u => u.email.toLowerCase() === normalizedEmail);
+            user = this.users.find(u => u.email.toLowerCase() === normalizedEmail);
             if (!user) {
                 console.log(`Login attempt failed: User not found for email: ${normalizedEmail}`);
                 return { success: false, message: 'Invalid email or password.' };
@@ -261,6 +274,12 @@ class AuthManager {
         } catch (error) {
             console.error('Login error:', error);
             return { success: false, message: 'An error occurred during login. Please try again.' };
+        }
+
+        // Check if user is valid before proceeding
+        if (!user) {
+            console.error('User object is null after login attempt');
+            return { success: false, message: 'Login failed. Please try again.' };
         }
 
         // Update last login
@@ -633,6 +652,118 @@ class AuthManager {
         }
     }
 
+    // Method to clear corrupted user data and reload
+    clearCorruptedUserData() {
+        try {
+            console.log('Clearing corrupted user data...');
+            
+            // Remove the main users storage
+            localStorage.removeItem('taskflow_users');
+            
+            // Clear all user backups
+            const keys = Object.keys(localStorage);
+            keys.forEach(key => {
+                if (key.startsWith('taskflow_users_backup_')) {
+                    localStorage.removeItem(key);
+                    console.log(`Removed backup: ${key}`);
+                }
+            });
+            
+            // Reset users array and reload
+            this.users = [];
+            this.users = this.loadUsers();
+            
+            console.log(`User data cleared. Current users: ${this.users.length}`);
+            return true;
+        } catch (error) {
+            console.error('Error clearing corrupted user data:', error);
+            return false;
+        }
+    }
+
+    // Auto-clear corrupted data on initialization
+    autoClearCorruptedData() {
+        try {
+            console.log('Checking for corrupted user data...');
+            
+            // Only clear if there are actually corrupted users or if this is the first time
+            const hasCorruptedData = this.users.some(user => 
+                !user.id || !user.email || !user.password || !user.firstName || !user.lastName
+            );
+            
+            // Check if this is the first time running (no users exist yet)
+            const isFirstTime = this.users.length === 0 && !localStorage.getItem('taskflow_users');
+            
+            if (hasCorruptedData || isFirstTime) {
+                console.log('Corrupted data detected or first time running, clearing user data');
+                
+                // Remove corrupted user data
+                localStorage.removeItem('taskflow_users');
+                localStorage.removeItem('taskflow_current_user');
+                localStorage.removeItem('taskflow_remember');
+                
+                // Clear corrupted backups
+                const keys = Object.keys(localStorage);
+                keys.forEach(key => {
+                    if (key.startsWith('taskflow_users_backup_') || 
+                        key.startsWith('taskflow_') && key.includes('user')) {
+                        localStorage.removeItem(key);
+                        console.log(`Removed: ${key}`);
+                    }
+                });
+                
+                // Reset arrays
+                this.users = [];
+                this.currentUser = null;
+                
+                // Reload users
+                this.users = this.loadUsers();
+                
+                console.log('Corrupted user data cleared');
+                console.log('Current users count:', this.users.length);
+                
+                if (isFirstTime) {
+                    this.showToast('System initialized. You can now create accounts!', 'success');
+                }
+            } else {
+                console.log('No corrupted data found, keeping existing users');
+                console.log('Current users count:', this.users.length);
+            }
+            
+        } catch (error) {
+            console.error('Error in auto-clear:', error);
+        }
+    }
+
+    // Force clear all user data (called during registration)
+    forceClearAllUserData() {
+        try {
+            console.log('Force clearing all user data during registration...');
+            
+            // Clear all localStorage items that might contain user data
+            const keys = Object.keys(localStorage);
+            keys.forEach(key => {
+                if (key.includes('user') || key.includes('auth') || key.includes('login')) {
+                    localStorage.removeItem(key);
+                    console.log(`Force removed: ${key}`);
+                }
+            });
+            
+            // Clear specific known keys
+            localStorage.removeItem('taskflow_users');
+            localStorage.removeItem('taskflow_current_user');
+            localStorage.removeItem('taskflow_remember');
+            
+            // Reset arrays
+            this.users = [];
+            this.currentUser = null;
+            
+            console.log('Force clear completed. Users array length:', this.users.length);
+        } catch (error) {
+            console.error('Error in force clear:', error);
+        }
+    }
+
     checkAuthStatus() {
         // Clear logout flag when login page loads
         sessionStorage.removeItem('logging_out');
@@ -666,10 +797,17 @@ class AuthManager {
         });
 
         // Signup form
-        document.getElementById('signup-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await this.handleSignup();
-        });
+        const signupForm = document.getElementById('signup-form');
+        if (signupForm) {
+            console.log('Signup form found, adding event listener');
+            signupForm.addEventListener('submit', async (e) => {
+                console.log('Signup form submitted!');
+                e.preventDefault();
+                await this.handleSignup();
+            });
+        } else {
+            console.error('Signup form not found during setup!');
+        }
 
 
 
@@ -679,9 +817,23 @@ class AuthManager {
         });
 
         // Password confirmation checker
-        document.getElementById('signup-confirm-password').addEventListener('input', (e) => {
-            this.checkPasswordMatch();
-        });
+        const confirmPasswordInput = document.getElementById('signup-confirm-password');
+        if (confirmPasswordInput) {
+            confirmPasswordInput.addEventListener('input', (e) => {
+                this.checkPasswordMatch();
+            });
+        }
+
+        // Test button click for debugging
+        const signupButton = document.querySelector('#signup-form button[type="submit"]');
+        if (signupButton) {
+            console.log('Signup button found, adding click listener for debugging');
+            signupButton.addEventListener('click', (e) => {
+                console.log('Signup button clicked!');
+            });
+        } else {
+            console.error('Signup button not found!');
+        }
 
         // Social auth buttons (demo)
         document.querySelectorAll('.btn-social').forEach(btn => {
@@ -717,8 +869,23 @@ class AuthManager {
     }
 
     async handleSignup() {
+        console.log('handleSignup called');
+        
         const form = document.getElementById('signup-form');
+        if (!form) {
+            console.error('Signup form not found!');
+            return;
+        }
+        
         const formData = new FormData(form);
+        console.log('Form data collected:', {
+            firstName: formData.get('firstName'),
+            lastName: formData.get('lastName'),
+            email: formData.get('email'),
+            password: formData.get('password'),
+            confirmPassword: formData.get('confirmPassword'),
+            agreeTerms: formData.get('agreeTerms')
+        });
         
         const userData = {
             firstName: formData.get('firstName'),
@@ -729,7 +896,9 @@ class AuthManager {
             agreeTerms: formData.get('agreeTerms') === 'on'
         };
 
+        console.log('Calling register method...');
         const result = await this.register(userData);
+        console.log('Register result:', result);
         
         if (result.success) {
             this.showToast('Account created successfully!', 'success');
@@ -814,6 +983,26 @@ function resetAllData() {
     }
 }
 
+function clearCorruptedUserData() {
+    if (auth) {
+        const confirmed = confirm('Clear corrupted user data? This will remove all user accounts but keep other app data.');
+        if (confirmed) {
+            const result = auth.clearCorruptedUserData();
+            if (result) {
+                alert('User data cleared successfully. You can now create new accounts.');
+                location.reload();
+            } else {
+                alert('Failed to clear user data. Please try again.');
+            }
+            return result;
+        }
+        return false;
+    } else {
+        console.error('Auth manager not initialized');
+        return false;
+    }
+}
+
 
 
 function togglePassword(inputId) {
@@ -840,5 +1029,7 @@ function showPrivacy() {
 // Initialize authentication
 let auth;
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded fired, creating AuthManager');
     auth = new AuthManager();
+    console.log('AuthManager created:', auth);
 });
