@@ -17,6 +17,14 @@ class AuthManager {
         
         // Auto-clear corrupted user data to fix registration issues
         this.autoClearCorruptedData();
+        
+        // Clear any pre-filled form data
+        this.clearFormData();
+        
+        // Clear forms again after a short delay to catch browser autofill
+        setTimeout(() => {
+            this.clearFormData();
+        }, 100);
     }
 
     // ===== USER MANAGEMENT =====
@@ -417,6 +425,34 @@ class AuthManager {
 
     removeRememberMeCookie() {
         document.cookie = 'taskflow_remember=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    }
+
+    clearFormData() {
+        // Clear login form
+        const loginForm = document.getElementById('login-form');
+        if (loginForm) {
+            loginForm.reset();
+            // Also clear any values that might have been set by browser autofill
+            const inputs = loginForm.querySelectorAll('input');
+            inputs.forEach(input => {
+                if (input.type !== 'checkbox') {
+                    input.value = '';
+                }
+            });
+        }
+
+        // Clear signup form
+        const signupForm = document.getElementById('signup-form');
+        if (signupForm) {
+            signupForm.reset();
+            // Also clear any values that might have been set by browser autofill
+            const inputs = signupForm.querySelectorAll('input');
+            inputs.forEach(input => {
+                if (input.type !== 'checkbox') {
+                    input.value = '';
+                }
+            });
+        }
     }
 
     // ===== UI HELPERS =====
