@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # 📋 TaskFlow - Modern Todo App
 
 A modern, responsive to-do list application with advanced features including user authentication, custom categories, motivational quotes, and comprehensive task management capabilities.
